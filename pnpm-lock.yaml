@@ -210,21 +210,21 @@ importers:
       '@actions/core':
         specifier: 3.0.1
         version: 3.0.1
-      '@scaleway/oxfmt-config':
-        specifier: ^1.1.5
-        version: 1.1.5(oxfmt@0.65.0)
+      '@scaleway/sdk-client':
+        specifier: 2.6.0
+        version: 2.6.0
       '@scaleway/sdk-container':
         specifier: 2.12.0
         version: 2.12.0(@scaleway/sdk-client@2.6.0)
       '@scaleway/sdk-domain':
         specifier: 2.10.0
         version: 2.10.0(@scaleway/sdk-client@2.6.0)
-      '@scaleway/sdk-std':
-        specifier: 2.6.0
-        version: 2.6.0(@scaleway/sdk-client@2.6.0)
     devDependencies:
+      '@scaleway/oxfmt-config':
+        specifier: 1.1.5
+        version: 1.1.5(oxfmt@0.65.0)
       '@scaleway/oxlint-config':
-        specifier: ^0.2.3
+        specifier: 0.2.3
         version: 0.2.3(oxlint@1.80.0)
       '@types/node':
         specifier: 26.3.0

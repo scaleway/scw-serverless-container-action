@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
 import { Client } from '@scaleway/sdk-client'
-import { Containerv1beta1 } from '@scaleway/sdk-container'
+import { Containerv1 } from '@scaleway/sdk-container'
 import { ENV } from './constants'
 import {
   deployContainer,
@@ -15,8 +15,8 @@ import { getContainerName } from './utils'
 
 export async function setupDomain(
   client: Client,
-  container: Containerv1beta1.Container,
-): Promise<Containerv1beta1.Domain | null> {
+  container: Containerv1.Container,
+): Promise<Containerv1.Domain | null> {
   const dnsName = process.env[ENV.DNS]
 
   if (!dnsName) {
@@ -41,7 +41,7 @@ export async function deploy(
   client: Client,
   region: string,
   pathRegistry: string,
-): Promise<{ container: Containerv1beta1.Container; domain: Containerv1beta1.Domain | null }> {
+): Promise<{ container: Containerv1.Container; domain: Containerv1.Domain | null }> {
   const namespace = await getContainersNamespace(client, region)
 
   await waitForNamespaceReady(client, namespace)
@@ -55,7 +55,7 @@ export async function deploy(
   return { container, domain }
 }
 
-export async function teardown(client: Client, region: string, pathRegistry: string): Promise<Containerv1beta1.Container> {
+export async function teardown(client: Client, region: string, pathRegistry: string): Promise<Containerv1.Container> {
   const containerName = getContainerName(pathRegistry)
   const container = await getContainer(client, region, containerName)
 

@@ -1,5 +1,6 @@
 import { info } from "./node_modules/.pnpm/@actions_core@3.0.1/node_modules/@actions/core/lib/core.mjs";
 import { DNS, ENV } from "./constants.mjs";
+import { getContainerDomain } from "./container.mjs";
 import { index_gen_exports } from "./node_modules/.pnpm/@scaleway_sdk-domain@2.10.0_@scaleway_sdk-client@2.6.0/node_modules/@scaleway/sdk-domain/dist/v2beta1/index.gen.mjs";
 import "./node_modules/.pnpm/@scaleway_sdk-domain@2.10.0_@scaleway_sdk-client@2.6.0/node_modules/@scaleway/sdk-domain/dist/index.gen.mjs";
 
@@ -9,7 +10,7 @@ async function deleteDnsRecord(client, container, dnsZone) {
 	const prefix = process.env[ENV.DNS_PREFIX] || "";
 	const rootZone = process.env[ENV.ROOT_ZONE] || "false";
 	const api = new index_gen_exports.API(client);
-	const data = `${container.domainName}.`;
+	const data = `${getContainerDomain(container)}.`;
 	let name = container.name;
 	let type = DNS.CNAME;
 	if (prefix) {
@@ -56,10 +57,10 @@ async function setDnsRecord(client, container, dnsZone) {
 		name,
 		type,
 		ttl: DNS.TTL,
-		data: `${container.domainName}.`,
+		data: `${getContainerDomain(container)}.`,
 		priority: 0
 	}];
-	const data = `${container.domainName}.`;
+	const data = `${getContainerDomain(container)}.`;
 	const changes = [{ set: {
 		idFields: {
 			name,

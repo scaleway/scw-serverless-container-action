@@ -1,10 +1,13 @@
 import { info } from "./node_modules/.pnpm/@actions_core@3.0.1/node_modules/@actions/core/lib/core.mjs";
 import { DEFAULTS, ENV } from "./constants.mjs";
-import { index_gen_exports } from "./node_modules/.pnpm/@scaleway_sdk-container@2.12.0_@scaleway_sdk-client@2.6.0/node_modules/@scaleway/sdk-container/dist/v1beta1/index.gen.mjs";
+import { index_gen_exports } from "./node_modules/.pnpm/@scaleway_sdk-container@2.12.0_@scaleway_sdk-client@2.6.0/node_modules/@scaleway/sdk-container/dist/v1/index.gen.mjs";
 import "./node_modules/.pnpm/@scaleway_sdk-container@2.12.0_@scaleway_sdk-client@2.6.0/node_modules/@scaleway/sdk-container/dist/index.gen.mjs";
-import { envOr, envToInt, parseKeyValue, parseSecrets } from "./utils.mjs";
+import { envOr, envToInt, parseKeyValue } from "./utils.mjs";
 
 //#region src/container.ts
+function getContainerDomain(container) {
+	return container.publicEndpoint.replace(/^https?:\/\//, "").split("/")[0];
+}
 function getSandboxVersion() {
 	const sandbox = envOr(ENV.SANDBOX, DEFAULTS.SANDBOX);
 	if (sandbox === "v1") return "v1";
@@ -73,47 +76,50 @@ async function isContainerAlreadyCreated(client, namespace, containerName) {
 async function updateDeployedContainer(client, container, pathRegistry) {
 	const api = new index_gen_exports.API(client);
 	const containerEnv = getContainerEnvVariables();
-	const secrets = parseSecrets();
+	const secrets = parseKeyValue(ENV.SECRETS);
 	const environmentVariables = parseKeyValue(process.env[ENV.ENVIRONMENT_VARIABLES] || "");
-	return await api.updateContainer({
+	const updatedContainer = await api.updateContainer({
 		region: container.region,
 		containerId: container.id,
-		registryImage: pathRegistry,
-		redeploy: true,
+		image: pathRegistry,
 		environmentVariables,
 		secretEnvironmentVariables: secrets,
-		memoryLimit: containerEnv.memoryLimit,
+		memoryLimitBytes: containerEnv.memoryLimit * 1024 * 1024,
 		minScale: containerEnv.minScale,
 		maxScale: containerEnv.maxScale,
-		cpuLimit: containerEnv.cpuLimit,
+		mvcpuLimit: containerEnv.cpuLimit,
 		port: containerEnv.port,
-		maxConcurrency: containerEnv.maxConcurrency,
+		scalingOption: { concurrentRequestsThreshold: containerEnv.maxConcurrency },
 		sandbox: containerEnv.sandbox
+	});
+	return await api.redeployContainer({
+		region: container.region,
+		containerId: updatedContainer.id
 	});
 }
 async function createContainerAndDeploy(client, namespace, pathRegistry, containerName) {
 	const api = new index_gen_exports.API(client);
 	const containerEnv = getContainerEnvVariables();
-	const secrets = parseSecrets();
+	const secrets = parseKeyValue(ENV.SECRETS);
 	const environmentVariables = parseKeyValue(process.env[ENV.ENVIRONMENT_VARIABLES] || "");
 	const createdContainer = await api.createContainer({
 		description: DEFAULTS.DESCRIPTION,
 		name: containerName,
 		namespaceId: namespace.id,
 		region: namespace.region,
-		registryImage: pathRegistry,
+		image: pathRegistry,
 		timeout: `${DEFAULTS.TIMEOUT_SECONDS}s`,
 		environmentVariables,
 		secretEnvironmentVariables: secrets,
-		memoryLimit: containerEnv.memoryLimit,
+		memoryLimitBytes: containerEnv.memoryLimit * 1024 * 1024,
 		minScale: containerEnv.minScale,
 		maxScale: containerEnv.maxScale,
-		cpuLimit: containerEnv.cpuLimit,
+		mvcpuLimit: containerEnv.cpuLimit,
 		port: containerEnv.port,
-		maxConcurrency: containerEnv.maxConcurrency,
+		scalingOption: { concurrentRequestsThreshold: containerEnv.maxConcurrency },
 		sandbox: containerEnv.sandbox
 	});
-	return await api.deployContainer({
+	return await api.redeployContainer({
 		region: namespace.region,
 		containerId: createdContainer.id
 	});
@@ -143,4 +149,4 @@ async function setCustomDomainContainer(client, container, hostname) {
 }
 
 //#endregion
-export { createContainerAndDeploy, deleteContainer, deployContainer, getContainer, getContainerEnvVariables, getContainersNamespace, getSandboxVersion, isContainerAlreadyCreated, setCustomDomainContainer, updateDeployedContainer, waitForContainerReady, waitForNamespaceReady };
+export { createContainerAndDeploy, deleteContainer, deployContainer, getContainer, getContainerDomain, getContainerEnvVariables, getContainersNamespace, getSandboxVersion, isContainerAlreadyCreated, setCustomDomainContainer, updateDeployedContainer, waitForContainerReady, waitForNamespaceReady };

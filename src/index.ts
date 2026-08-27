@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import { createClient } from '@scaleway/sdk-client'
 import { ENV, DEFAULTS } from './constants'
+import { getContainerDomain } from './container'
 import { deploy, teardown } from './orchestrator'
 import { envOr, printOutputs } from './utils'
 
@@ -37,8 +38,8 @@ async function run(): Promise<void> {
       const result = await deploy(client, region, pathRegistry)
 
       printOutputs(
-        result.container.domainName,
-        result.domain?.hostname || `https://${result.container.domainName}`,
+        getContainerDomain(result.container),
+        result.domain?.hostname || result.container.publicEndpoint,
         result.container.id,
         result.container.namespaceId,
       )
@@ -46,8 +47,8 @@ async function run(): Promise<void> {
       const deletedContainer = await teardown(client, region, pathRegistry)
 
       printOutputs(
-        deletedContainer.domainName,
-        `https://${deletedContainer.domainName}`,
+        getContainerDomain(deletedContainer),
+        deletedContainer.publicEndpoint,
         deletedContainer.id,
         deletedContainer.namespaceId,
       )

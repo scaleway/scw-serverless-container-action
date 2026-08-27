@@ -1,8 +1,8 @@
 import * as core from '@actions/core'
 import { Client } from '@scaleway/sdk-client'
-import { Containerv1beta1 } from '@scaleway/sdk-container'
+import { Containerv1 } from '@scaleway/sdk-container'
 import { ENV, DEFAULTS } from './constants'
-import { envToInt, envOr, parseKeyValue, parseSecrets } from './utils'
+import { envToInt, envOr, parseKeyValue } from './utils'
 
 export type ContainerEnv = {
   port: number
@@ -11,10 +11,14 @@ export type ContainerEnv = {
   maxScale: number
   maxConcurrency: number
   cpuLimit: number
-  sandbox: Containerv1beta1.ContainerSandbox
+  sandbox: Containerv1.ContainerSandbox
 }
 
-export function getSandboxVersion(): Containerv1beta1.ContainerSandbox {
+export function getContainerDomain(container: Containerv1.Container): string {
+  return container.publicEndpoint.replace(/^https?:\/\//, '').split('/')[0]
+}
+
+export function getSandboxVersion(): Containerv1.ContainerSandbox {
   const sandbox = envOr(ENV.SANDBOX, DEFAULTS.SANDBOX)
 
   if (sandbox === 'v1') {
@@ -42,11 +46,11 @@ export function getContainerEnvVariables(): ContainerEnv {
 
 export async function waitForNamespaceReady(
   client: Client,
-  namespace: Containerv1beta1.Namespace,
-): Promise<Containerv1beta1.Namespace> {
+  namespace: Containerv1.Namespace,
+): Promise<Containerv1.Namespace> {
   core.info('Waiting for namespace to be ready...')
 
-  const api = new Containerv1beta1.API(client)
+  const api = new Containerv1.API(client)
 
   const readyNamespace = await api.waitForNamespace({
     region: namespace.region,
@@ -58,11 +62,11 @@ export async function waitForNamespaceReady(
 
 export async function waitForContainerReady(
   client: Client,
-  container: Containerv1beta1.Container,
-): Promise<Containerv1beta1.Container> {
+  container: Containerv1.Container,
+): Promise<Containerv1.Container> {
   core.info('Waiting for container to be ready...')
 
-  const api = new Containerv1beta1.API(client)
+  const api = new Containerv1.API(client)
 
   const readyContainer = await api.waitForContainer({
     region: container.region,
@@ -76,14 +80,14 @@ export async function getContainer(
   client: Client,
   region: string,
   containerName: string,
-): Promise<Containerv1beta1.Container | null> {
+): Promise<Containerv1.Container | null> {
   const namespaceId = process.env[ENV.CONTAINER_NAMESPACE_ID]
 
   if (!namespaceId) {
     throw new Error('Namespace ID not found')
   }
 
-  const api = new Containerv1beta1.API(client)
+  const api = new Containerv1.API(client)
 
   const response = await api.listContainers({
     region,
@@ -101,9 +105,9 @@ export async function getContainer(
 export async function deleteContainer(
   client: Client,
   region: string,
-  container: Containerv1beta1.Container,
-): Promise<Containerv1beta1.Container> {
-  const api = new Containerv1beta1.API(client)
+  container: Containerv1.Container,
+): Promise<Containerv1.Container> {
+  const api = new Containerv1.API(client)
 
   const deletedContainer = await api.deleteContainer({
     region,
@@ -113,14 +117,14 @@ export async function deleteContainer(
   return deletedContainer
 }
 
-export async function getContainersNamespace(client: Client, region: string): Promise<Containerv1beta1.Namespace> {
+export async function getContainersNamespace(client: Client, region: string): Promise<Containerv1.Namespace> {
   const namespaceId = process.env[ENV.CONTAINER_NAMESPACE_ID]
 
   if (!namespaceId) {
     throw new Error('Containers namespace ID not found')
   }
 
-  const api = new Containerv1beta1.API(client)
+  const api = new Containerv1.API(client)
 
   const namespace = await api.getNamespace({
     region,
@@ -132,10 +136,10 @@ export async function getContainersNamespace(client: Client, region: string): Pr
 
 export async function isContainerAlreadyCreated(
   client: Client,
-  namespace: Containerv1beta1.Namespace,
+  namespace: Containerv1.Namespace,
   containerName: string,
-): Promise<Containerv1beta1.Container | null> {
-  const api = new Containerv1beta1.API(client)
+): Promise<Containerv1.Container | null> {
+  const api = new Containerv1.API(client)
 
   const response = await api.listContainers({
     region: namespace.region,
@@ -152,44 +156,48 @@ export async function isContainerAlreadyCreated(
 
 export async function updateDeployedContainer(
   client: Client,
-  container: Containerv1beta1.Container,
+  container: Containerv1.Container,
   pathRegistry: string,
-): Promise<Containerv1beta1.Container> {
-  const api = new Containerv1beta1.API(client)
+): Promise<Containerv1.Container> {
+  const api = new Containerv1.API(client)
 
   const containerEnv = getContainerEnvVariables()
-  const secrets = parseSecrets()
+  const secrets = parseKeyValue(ENV.SECRETS)
   const environmentVariables = parseKeyValue(process.env[ENV.ENVIRONMENT_VARIABLES] || '')
 
   const updatedContainer = await api.updateContainer({
     region: container.region,
     containerId: container.id,
-    registryImage: pathRegistry,
-    redeploy: true,
+    image: pathRegistry,
     environmentVariables,
     secretEnvironmentVariables: secrets,
-    memoryLimit: containerEnv.memoryLimit,
+    memoryLimitBytes: containerEnv.memoryLimit * 1024 * 1024,
     minScale: containerEnv.minScale,
     maxScale: containerEnv.maxScale,
-    cpuLimit: containerEnv.cpuLimit,
+    mvcpuLimit: containerEnv.cpuLimit,
     port: containerEnv.port,
-    maxConcurrency: containerEnv.maxConcurrency,
+    scalingOption: { concurrentRequestsThreshold: containerEnv.maxConcurrency },
     sandbox: containerEnv.sandbox,
   })
 
-  return updatedContainer
+  const deployedContainer = await api.redeployContainer({
+    region: container.region,
+    containerId: updatedContainer.id,
+  })
+
+  return deployedContainer
 }
 
 export async function createContainerAndDeploy(
   client: Client,
-  namespace: Containerv1beta1.Namespace,
+  namespace: Containerv1.Namespace,
   pathRegistry: string,
   containerName: string,
-): Promise<Containerv1beta1.Container> {
-  const api = new Containerv1beta1.API(client)
+): Promise<Containerv1.Container> {
+  const api = new Containerv1.API(client)
 
   const containerEnv = getContainerEnvVariables()
-  const secrets = parseSecrets()
+  const secrets = parseKeyValue(ENV.SECRETS)
   const environmentVariables = parseKeyValue(process.env[ENV.ENVIRONMENT_VARIABLES] || '')
 
   const createdContainer = await api.createContainer({
@@ -197,20 +205,20 @@ export async function createContainerAndDeploy(
     name: containerName,
     namespaceId: namespace.id,
     region: namespace.region,
-    registryImage: pathRegistry,
+    image: pathRegistry,
     timeout: `${DEFAULTS.TIMEOUT_SECONDS}s`,
     environmentVariables,
     secretEnvironmentVariables: secrets,
-    memoryLimit: containerEnv.memoryLimit,
+    memoryLimitBytes: containerEnv.memoryLimit * 1024 * 1024,
     minScale: containerEnv.minScale,
     maxScale: containerEnv.maxScale,
-    cpuLimit: containerEnv.cpuLimit,
+    mvcpuLimit: containerEnv.cpuLimit,
     port: containerEnv.port,
-    maxConcurrency: containerEnv.maxConcurrency,
+    scalingOption: { concurrentRequestsThreshold: containerEnv.maxConcurrency },
     sandbox: containerEnv.sandbox,
   })
 
-  const deployedContainer = await api.deployContainer({
+  const deployedContainer = await api.redeployContainer({
     region: namespace.region,
     containerId: createdContainer.id,
   })
@@ -220,10 +228,10 @@ export async function createContainerAndDeploy(
 
 export async function deployContainer(
   client: Client,
-  namespace: Containerv1beta1.Namespace,
+  namespace: Containerv1.Namespace,
   containerName: string,
   pathRegistry: string,
-): Promise<Containerv1beta1.Container> {
+): Promise<Containerv1.Container> {
   core.info(`Container Name: ${containerName}`)
 
   const existingContainer = await isContainerAlreadyCreated(client, namespace, containerName)
@@ -245,9 +253,9 @@ export async function deployContainer(
 
 export async function setCustomDomainContainer(
   client: Client,
-  container: Containerv1beta1.Container,
+  container: Containerv1.Container,
   hostname: string,
-): Promise<Containerv1beta1.Domain> {
+): Promise<Containerv1.Domain> {
   if (!hostname) {
     throw new Error('Hostname is required')
   }
@@ -256,7 +264,7 @@ export async function setCustomDomainContainer(
     throw new Error('Hostname cannot be longer than 63 characters')
   }
 
-  const api = new Containerv1beta1.API(client)
+  const api = new Containerv1.API(client)
 
   const listResponse = await api.listDomains({
     region: container.region,

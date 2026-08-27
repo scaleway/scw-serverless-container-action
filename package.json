@@ -1,0 +1,54 @@
+{
+  "name": "scaleway-containers-deploy",
+  "version": "1.0.0",
+  "description": "GitHub Action to deploy containers on Scaleway Serverless Containers",
+  "keywords": [
+    "containers",
+    "github-action",
+    "scaleway",
+    "serverless"
+  ],
+  "license": "MIT",
+  "author": "",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "package": "tsdown",
+    "lint": "oxlint src/",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "check": "oxlint src/ && oxfmt check src/"
+  },
+  "dependencies": {
+    "@actions/core": "3.0.1",
+    "@scaleway/oxfmt-config": "^1.1.5",
+    "@scaleway/sdk-container": "2.12.0",
+    "@scaleway/sdk-domain": "2.10.0",
+    "@scaleway/sdk-std": "2.6.0"
+  },
+  "devDependencies": {
+    "@scaleway/oxlint-config": "^0.2.3",
+    "@types/node": "26.3.0",
+    "oxfmt": "0.65.0",
+    "oxlint": "1.80.0",
+    "tsdown": "0.22.14",
+    "typescript": "7.0.2"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.24.0",
+      "onFail": "download"
+    },
+    "runtime": {
+      "name": "node",
+      "version": ">=24.17 || 26.x",
+      "onFail": "error"
+    }
+  },
+  "engines": {
+    "node": "20.x || 22.x || 24.x || 26.x"
+  }
+}

@@ -1,0 +1,94 @@
+name: 'serverless-container-action'
+description: 'This github action will help you to deploy automatically a container on Serverless Container'
+inputs:
+  type:
+    description: 'This input can be used for deploy or teardown your environment. type by default is deploy ( deploy | teadown )'
+    required: false
+    default: deploy
+  scw_access_key:
+    description: 'Access Key ( https://console.scaleway.com/project/credentials )'
+    required: true
+  scw_secret_key:
+    description: 'secret key ( https://console.scaleway.com/project/credentials )'
+    required: true
+  scw_containers_namespace_id:
+    description: 'default namespace id where your container will be deploy, if this not required, this action will create a namespace and we need projectID to be set.'
+    required: true
+  scw_registry:
+    description: 'Either your Scaleway registry ( format: rg.$REGION.scw.cloud/$NAMESPACE/$IMAGE:$TAG ) or an external one ( e.g: registry.hub.docker.com/library/$IMAGE:$TAG )'
+    required: true
+  scw_region:
+    description: 'The Scaleway region to use'
+    required: false
+    default: 'fr-par'
+  scw_container_port:
+    description: 'Default port where your docker container expose'
+    required: false
+    default: '80'
+  scw_memory_limit:
+    description: 'Memory limit in MB ( 128 | 256 | 512 | 1024 | 2048 )'
+    required: false
+    default: '256'
+  scw_min_scale:
+    description: 'Min Scale of the Container'
+    required: false
+    default: '1'
+  scw_max_scale:
+    description: 'Max Scale of the Container'
+    required: false
+    default: '5'
+  scw_cpu_limit:
+    description: 'CPU Limit of the Container'
+    required: false
+    default: '70'
+  scw_max_concurrency:
+    description: 'Max Concurrency of the Container'
+    required: false
+    default: '5'
+  scw_dns:
+    description: 'DNS name where your container will be available. Limitation: 63 char maximun'
+    required: false
+  scw_dns_prefix:
+    description: "This will override prefix of your dns. if it's not set thane name of the containers ( max 34 char actually) will be set"
+    required: false
+  root_zone:
+    description: 'This will add ALIAS on your root zone. Actually CNAME is used for all `¨scw_dns_prefix.scw_dns` of your dns'
+    required: false
+    default: 'false'
+  scw_environment_variables:
+    description: 'List of environnment variables in the form of KEY=VALUE, separated by commas'
+    required: false
+    default: ''
+  scw_secrets:
+    description: "List of secrets in the form of KEY=VALUE, separated by commas. The value can't contains commas nor equal signs"
+    required: false
+    default: ''
+  scw_sandbox:
+    desription: 'Apply Sandbox version, default version will be V1 ( when using v2, scw_cpu_limit need to be )'
+    options:
+      - 'v1'
+      - 'v2'
+    required: false
+    default: 'v1'
+
+  # scw_debug:
+  #   description: "debug log api call"
+  #   required: false
+  #   default: "0"
+
+outputs:
+  scw_namespace_id:
+    description: 'ID of your container namespace'
+  scw_container_id:
+    description: 'ID of your container inside your namespace'
+  container_url:
+    description: 'Url of your deployed container'
+  url:
+    description: 'Url with dns set'
+
+runs:
+  using: 'node26'
+  main: 'dist/index.cjs'
+branding:
+  icon: 'cloud-lightning'
+  color: 'purple'

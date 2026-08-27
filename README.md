@@ -1,0 +1,266 @@
+<p align="center">
+    <img src="./logo.png" alt="Scaleway logo" />
+</p>
+
+<h1 align="center">The simplest way to deploy your app in Scaleway</h3>
+
+<br />
+
+# [Scaleway](https://www.scaleway.com/) GitHub Action
+
+**Scaleway Serverless Containers Github Action** is a Github Action plugin allowing Scaleway users to integrate Containers within their CI nicely.
+
+- Website: https://www.scaleway.com
+- Console: https://console.scaleway.com
+- Documentation: https://www.scaleway.com/en/docs
+
+## ✅ Requirements
+
+- A **Scaleway** account. [Sign up now](https://console.scaleway.com/register/) if you don't have any account yet.
+
+## 📖 Installation
+
+- Create an API key: [how to generate your API token?](https://www.scaleway.com/en/docs/console/my-project/how-to/generate-api-key)
+
+- Setup a secret named `SCW_SECRET_KEY` & `SCW_ACCESS_KEY` within your repository `Secrets` section and set its value with output of the previous step.
+
+- Setup a [Registry](https://www.scaleway.com/en/docs/faq/containerregistry)
+  Actually only Scaleway Registry is available.
+
+- Setup a Containers Namespace `SCW_CONTAINER_NAMESPACE_ID` within your repository `Secrets` section and set its value with your Scaleway account namespace.
+  This Namespace is used inside the same Region of your registry.
+
+You can can setup this namespace with our cli `scw containers namespace create` command.
+
+- (optional) Setup a `SCW_DNS_ZONE` within your repository `Secrets` section and set its value with your Scaleway account DNS zone.
+  How To add [Custom Domains](https://www.scaleway.com/en/docs/compute/containers/how-to/add-a-custom-domain-to-a-container/).
+  In this automation process, we will use the DNS zone of your Scaleway account. Each zone will be based on the container name created and based on the tag of your Image.
+  Your path registry is `rg.fr-par.scw.cloud/test/images:latest`, your container name tag will be `latest` and your DNS zone will be `latest.${SCW_DNS_ZONE}`.
+
+## 🔌 Usage
+
+`scw_access_key`, `scw_secret_key` & `scw_containers_namespace_id` will always be necessary
+
+### simple deploy
+
+| input name          | value                                  |
+| ------------------- | -------------------------------------- |
+| type                | deploy (default value )                |
+| scw_registry        | rg.fr-par.scw.cloud/test/images:latest |
+| scw_region          | fr-par (default value)                 |
+| scw_container_port  | 80 (default value )                    |
+| scw_memory_limit    | 256 (default value )                   |
+| scw_min_scale       | 1 (default value )                     |
+| scw_max_scale       | 5 (default value )                     |
+| scw_max_concurrency | 5 (default value )                     |
+| scw_cpu_limit       | 70 (default value )                    |
+| scw_sandbox         | v1                                     |
+
+```bash
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy on Scaleway Containers
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Scaleway Container Deploy action
+        id: deploy
+        uses:  scaleway/scaleway-containers-deploy@v1.0.0
+        with:
+          type: deploy
+          scw_access_key:  ${{ secrets.ACCESS_KEY }}
+          scw_secret_key: ${{ secrets.SECRET_KEY }}
+          scw_containers_namespace_id: ${{ secrets.CONTAINERS_NAMESPACE_ID }}
+          scw_registry: rg.fr-par.scw.cloud/test/testing:latest
+
+```
+
+### simple teardown
+
+| input name   | value                                  |
+| ------------ | -------------------------------------- |
+| type         | teardown                               |
+| scw_registry | rg.fr-par.scw.cloud/test/images:latest |
+
+```bash
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Teardown Containers
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Scaleway Container Teardown action
+        id: teardown
+        uses:  scaleway/scaleway-containers-deploy@v1.0.0
+        with:
+          type: teardown
+          scw_access_key:  ${{ secrets.ACCESS_KEY }}
+          scw_secret_key: ${{ secrets.SECRET_KEY }}
+          scw_containers_namespace_id: ${{ secrets.CONTAINERS_NAMESPACE_ID }}
+          scw_registry: rg.fr-par.scw.cloud/test/testing:latest
+
+```
+
+### deploy with environment variables and secrets
+
+> **Note**: The environment variables/secrets values can't contains commas nor equal signs.
+
+| input name                | value                                  |
+| ------------------------- | -------------------------------------- |
+| type                      | deploy (default value )                |
+| scw_registry              | rg.fr-par.scw.cloud/test/images:latest |
+| scw_region                | fr-par (default value)                 |
+| scw_container_port        | 80 (default value )                    |
+| scw_memory_limit          | 256 (default value )                   |
+| scw_environment_variables | HELLO=WORLD,JOHN=DOE                   |
+| scw_secrets               | HELLO=WORLD,JOHN=DOE                   |
+
+```bash
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy on Scaleway Containers
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Scaleway Container Deploy action
+        id: deploy
+        uses:  scaleway/scaleway-containers-deploy@v1.0.0
+        with:
+          type: deploy
+          scw_access_key:  ${{ secrets.ACCESS_KEY }}
+          scw_secret_key: ${{ secrets.SECRET_KEY }}
+          scw_containers_namespace_id: ${{ secrets.CONTAINERS_NAMESPACE_ID }}
+          scw_registry: rg.fr-par.scw.cloud/test/testing:latest
+          scw_environment_variables: HELLO=WORLD,JOHN=DOE
+          scw_secrets: ${{ secrets.SECRETS }}
+
+```
+
+### deploy to another region using an external registry
+
+| input name         | value                                        |
+| ------------------ | -------------------------------------------- |
+| type               | deploy (default value )                      |
+| scw_registry       | registry.hub.docker.com/library/nginx:latest |
+| scw_region         | nl-ams                                       |
+| scw_container_port | 80 (default value )                          |
+| scw_memory_limit   | 256 (default value )                         |
+
+```bash
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy on Scaleway Containers
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Scaleway Container Deploy action
+        id: deploy
+        uses:  scaleway/scaleway-containers-deploy@v1.0.0
+        with:
+          type: deploy
+          scw_access_key:  ${{ secrets.ACCESS_KEY }}
+          scw_secret_key: ${{ secrets.SECRET_KEY }}
+          scw_containers_namespace_id: ${{ secrets.CONTAINERS_NAMESPACE_ID }}
+          scw_registry: registry.hub.docker.com/library/nginx:latest
+          scw_region: nl-ams
+
+```
+
+### dns deploy
+
+| input name   | value                                  |
+| ------------ | -------------------------------------- |
+| type         | deploy                                 |
+| scw_registry | rg.fr-par.scw.cloud/test/images:latest |
+| scw_dns      | containers.test.fr                     |
+
+Actually, prefix of your dns will use the default value: "name of you created container"
+This created containers will be based on the tag name of the registry.
+
+```bash
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy on Scaleway Containers
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Scaleway Container Deploy action
+        id: deploy
+        uses:  scaleway/scaleway-containers-deploy@v1.0.0
+        with:
+          type: deploy
+          scw_access_key:  ${{ secrets.ACCESS_KEY }}
+          scw_secret_key: ${{ secrets.SECRET_KEY }}
+          scw_containers_namespace_id: ${{ secrets.CONTAINERS_NAMESPACE_ID }}
+          scw_registry: rg.fr-par.scw.cloud/test/testing:latest
+          scw_dns: containers.test.fr
+```
+
+### dns teardown
+
+| input name                | value                                  |
+| ------------------------- | -------------------------------------- |
+| type                      | teardown                               |
+| scw_registry              | rg.fr-par.scw.cloud/test/images:latest |
+| scw_dns                   | containers.test.fr                     |
+| scw_dns_prefix (optional) | testing                                |
+
+```bash
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Teardown Containers
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Scaleway Container Teardown action
+        id: teardown
+        uses:  scaleway/scaleway-containers-deploy@v1.0.0
+        with:
+          type: teardown
+          scw_access_key:  ${{ secrets.ACCESS_KEY }}
+          scw_secret_key: ${{ secrets.SECRET_KEY }}
+          scw_containers_namespace_id: ${{ secrets.CONTAINERS_NAMESPACE_ID }}
+          scw_registry: rg.fr-par.scw.cloud/test/testing:latest
+          scw_dns: containers.test.fr
+```
+
+## dns deploy on root zone
+
+if you want to deploy a container on your zone, you will need to control a new boolean variable `root_zone`
+
+## 🐳 Docker
+
+If you want to use this flow outside of Github Actions, you can use the Docker Image.
+
+```bash
+docker run -it --rm \
+  -e INPUT_SCW_ACCESS_KEY=${SCW_ACCESS_KEY} \
+  -e INPUT_SCW_SECRET_KEY=${SCW_SECRET_KEY} \
+  -e INPUT_SCW_CONTAINERS_NAMESPACE_ID=${SCW_CONTAINERS_NAMESPACE_ID} \
+  -e INPUT_SCW_REGISTRY=rg.fr-par.scw.cloud/test/testing:latest \
+  -e INPUT_SCW_DNS=containers.test.fr \
+  -e INPUT_TYPE=deploy \
+  phiphi/scaleway-containers-deploy:latest
+```
+
+## Gitlab
+
+If you want to use this flow outside of Github Actions, you can use the Docker Image inside you gitlab-ci configuration. You can check an exemple in this directory [here](./.gitlab-ci.yml)

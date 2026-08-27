@@ -1,5 +1,4 @@
 import { setOutput as setOutput$1 } from "./node_modules/.pnpm/@actions_core@3.0.1/node_modules/@actions/core/lib/core.mjs";
-import { ENV } from "./constants.mjs";
 
 //#region src/utils.ts
 function envOr(name, defaultValue) {
@@ -38,15 +37,6 @@ function parseKeyValue(key) {
 	}
 	return keyValue;
 }
-function parseSecrets() {
-	const secretsMap = parseKeyValue(ENV.SECRETS);
-	const secrets = [];
-	for (const [key, value] of Object.entries(secretsMap)) secrets.push({
-		key,
-		value
-	});
-	return secrets;
-}
 
 //#endregion
-export { envOr, envToInt, getContainerName, parseKeyValue, parseSecrets, printOutputs, setOutput };
+export { envOr, envToInt, getContainerName, parseKeyValue, printOutputs, setOutput };

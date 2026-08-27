@@ -3,6 +3,7 @@ import { createClient } from "./node_modules/.pnpm/@scaleway_sdk-client@2.6.0/no
 import "./node_modules/.pnpm/@scaleway_sdk-client@2.6.0/node_modules/@scaleway/sdk-client/dist/index.mjs";
 import { DEFAULTS, ENV } from "./constants.mjs";
 import { envOr, printOutputs } from "./utils.mjs";
+import { getContainerDomain } from "./container.mjs";
 import { deploy, teardown } from "./orchestrator.mjs";
 
 //#region src/index.ts
@@ -27,10 +28,10 @@ async function run() {
 		const client = createClientWrapper();
 		if (type === "deploy") {
 			const result = await deploy(client, region, pathRegistry);
-			printOutputs(result.container.domainName, result.domain?.hostname || `https://${result.container.domainName}`, result.container.id, result.container.namespaceId);
+			printOutputs(getContainerDomain(result.container), result.domain?.hostname || result.container.publicEndpoint, result.container.id, result.container.namespaceId);
 		} else if (type === "teardown") {
 			const deletedContainer = await teardown(client, region, pathRegistry);
-			printOutputs(deletedContainer.domainName, `https://${deletedContainer.domainName}`, deletedContainer.id, deletedContainer.namespaceId);
+			printOutputs(getContainerDomain(deletedContainer), deletedContainer.publicEndpoint, deletedContainer.id, deletedContainer.namespaceId);
 		} else setFailed(`Unknown type: ${type}. Valid types are: deploy, teardown`);
 	} catch (error) {
 		setFailed(error instanceof Error ? error.message : "An unknown error occurred");

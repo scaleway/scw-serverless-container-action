@@ -3,9 +3,7 @@ import { defineConfig } from 'tsdown'
 export default defineConfig({
   entry: ['src/index.ts'],
   outDir: 'dist',
-  format: [
-    'esm',
-  ],
+  format: ['esm'],
   platform: 'node',
   target: 'node24',
   unbundle: true,
@@ -14,7 +12,7 @@ export default defineConfig({
   minify: false,
   dts: false,
   deps: {
-     onlyBundle: false,
-     alwaysBundle: ['@actions/core', '@scaleway/sdk-client', '@scaleway/sdk-container', '@scaleway/sdk-domain'],
-   },
+    onlyBundle: false,
+    alwaysBundle: ['@actions/core', '@scaleway/sdk-client', '@scaleway/sdk-container', '@scaleway/sdk-domain'],
+  },
 })

@@ -1,12 +1,13 @@
 import * as core from '@actions/core'
 import { Client } from '@scaleway/sdk-client'
-import { Containerv1beta1 } from '@scaleway/sdk-container'
+import { Containerv1 } from '@scaleway/sdk-container'
 import { Domainv2beta1 } from '@scaleway/sdk-domain'
 import { ENV, DNS } from './constants'
+import { getContainerDomain } from './container'
 
 export async function deleteDnsRecord(
   client: Client,
-  container: Containerv1beta1.Container,
+  container: Containerv1.Container,
   dnsZone: string,
 ): Promise<Domainv2beta1.UpdateDNSZoneRecordsResponse> {
   core.info('Update Zone DNS - Delete')
@@ -16,7 +17,7 @@ export async function deleteDnsRecord(
 
   const api = new Domainv2beta1.API(client)
 
-  const data = `${container.domainName}.`
+  const data = `${getContainerDomain(container)}.`
 
   let name = container.name
   let type: Domainv2beta1.DomainRecordType = DNS.CNAME
@@ -54,7 +55,7 @@ export async function deleteDnsRecord(
   return response
 }
 
-export async function setDnsRecord(client: Client, container: Containerv1beta1.Container, dnsZone: string): Promise<string> {
+export async function setDnsRecord(client: Client, container: Containerv1.Container, dnsZone: string): Promise<string> {
   const prefix = process.env[ENV.DNS_PREFIX] || ''
   const rootZone = process.env[ENV.ROOT_ZONE] || 'false'
 
@@ -85,12 +86,12 @@ export async function setDnsRecord(client: Client, container: Containerv1beta1.C
       name,
       type,
       ttl: DNS.TTL,
-      data: `${container.domainName}.`,
+      data: `${getContainerDomain(container)}.`,
       priority: 0,
     },
   ] satisfies Domainv2beta1.DomainRecord[]
 
-  const data = `${container.domainName}.`
+  const data = `${getContainerDomain(container)}.`
 
   const changes = [
     {

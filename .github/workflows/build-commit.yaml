@@ -1,0 +1,99 @@
+name: Build & Commit dist
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: build-commit-dist
+  cancel-in-progress: false
+
+env:
+  BRANCH_NAME: bot/rebuild-dist
+
+jobs:
+  build-and-commit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true
+          fetch-depth: 2
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run build
+
+      - name: Verify lockfile is unchanged
+        run: |
+          if ! git diff --quiet pnpm-lock.yaml; then
+            echo "::error::pnpm-lock.yaml was modified during install. Lockfile is out of date."
+            exit 1
+          fi
+
+      - name: Stage dist
+        run: git add -f dist/
+
+      - name: Verify only dist/ is staged
+        run: |
+          staged=$(git diff --cached --name-only)
+          non_dist=$(echo "$staged" | grep -v '^dist/' || true)
+          if [ -n "$non_dist" ]; then
+            echo "::error::Unexpected files staged outside dist/:"
+            echo "$non_dist"
+            exit 1
+          fi
+
+      - name: Check for dist changes
+        id: changes
+        run: |
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create or update branch
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH_NAME"
+          git commit -m "build: rebuild dist"
+          git push --force-with-lease origin "$BRANCH_NAME"
+
+      - name: Create or update pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr_title="build: rebuild dist"
+          pr_body="This PR was automatically created to keep \`dist/\` in sync with \`src/\` after a merge to \`main\`.
+
+          Triggered by commit: ${{ github.sha }}"
+
+          existing_pr=$(gh pr list --head "$BRANCH_NAME" --base main --json number --jq '.[0].number')
+
+          if [ -n "$existing_pr" ]; then
+            gh pr edit "$existing_pr" --title "$pr_title" --body "$pr_body"
+            echo "Updated PR #$existing_pr"
+          else
+            gh pr create \
+              --head "$BRANCH_NAME" \
+              --base main \
+              --title "$pr_title" \
+              --body "$pr_body"
+          fi

@@ -25,5 +25,10 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
+      - name: Verify dist is up to date
+        run: |
+          git add -f dist/
+          git diff --cached --exit-code || \
+            (echo "::error::dist/ is out of date. Run 'pnpm run build' and commit the result." && exit 1)
       - run: pnpm run typecheck
       - run: pnpm lint

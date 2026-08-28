@@ -1,0 +1,113 @@
+name: E2E
+
+on:
+  merge_group:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Only one e2e run per ref at a time to avoid concurrent deploys on the same namespace.
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-teardown:
+    name: Deploy & Teardown
+    runs-on: ubuntu-24.04
+    # Only run when the required Scaleway secrets are available. PRs from forks
+    # (and any repo without the secrets configured) are skipped automatically.
+    if: ${{ vars.SCW_E2E_ENABLED == 'true' }}
+    env:
+      SCW_REGION: ${{ vars.SCW_REGION || 'fr-par' }}
+      IMAGE_NAME: scw-serverless-container-action-e2e
+      IMAGE_TAG: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the action
+        run: pnpm run build
+
+      - name: Login to Scaleway Container Registry
+        uses: docker/login-action@5e57cd4a7a73331f448f3ab1e0d64423eee28ed4 # v3.6.0
+        with:
+          registry: rg.${{ env.SCW_REGION }}.scw.cloud
+          username: ${{ secrets.SCW_ACCESS_KEY }}
+          password: ${{ secrets.SCW_SECRET_KEY }}
+
+      - name: Build & push test image
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198571cfb76f00 # v6.18.0
+        with:
+          context: .
+          file: .github/e2e/Dockerfile
+          push: true
+          tags: rg.${{ env.SCW_REGION }}.scw.cloud/${{ secrets.SCW_REGISTRY_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: Deploy container
+        id: deploy
+        uses: ./
+        with:
+          type: deploy
+          scw_access_key: ${{ secrets.SCW_ACCESS_KEY }}
+          scw_secret_key: ${{ secrets.SCW_SECRET_KEY }}
+          scw_containers_namespace_id: ${{ secrets.SCW_CONTAINERS_NAMESPACE_ID }}
+          scw_registry: rg.${{ env.SCW_REGION }}.scw.cloud/${{ secrets.SCW_REGISTRY_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          scw_region: ${{ env.SCW_REGION }}
+
+      - name: Validate container is reachable
+        env:
+          URL: ${{ steps.deploy.outputs.container_url }}
+        run: |
+          set -euo pipefail
+          echo "Hitting $URL ..."
+          # Retry for up to ~2 minutes while the container rolls out.
+          for i in $(seq 1 24); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "https://$URL" || true)
+            if [ "$code" = "200" ]; then
+              echo "Container returned 200"
+              exit 0
+            fi
+            echo "Attempt $i: got $code, retrying in 5s..."
+            sleep 5
+          done
+          echo "Container did not return 200 in time" >&2
+          exit 1
+
+  teardown:
+    name: Teardown
+    runs-on: ubuntu-24.04
+    needs: deploy-teardown
+    # Always tear down, even if the deploy/validate job failed.
+    if: ${{ always() && vars.SCW_E2E_ENABLED == 'true' }}
+    env:
+      SCW_REGION: ${{ vars.SCW_REGION || 'fr-par' }}
+      IMAGE_NAME: scw-serverless-container-action-e2e
+      IMAGE_TAG: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Teardown container
+        uses: ./
+        with:
+          type: teardown
+          scw_access_key: ${{ secrets.SCW_ACCESS_KEY }}
+          scw_secret_key: ${{ secrets.SCW_SECRET_KEY }}
+          scw_containers_namespace_id: ${{ secrets.SCW_CONTAINERS_NAMESPACE_ID }}
+          scw_registry: rg.${{ env.SCW_REGION }}.scw.cloud/${{ secrets.SCW_REGISTRY_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          scw_region: ${{ env.SCW_REGION }}

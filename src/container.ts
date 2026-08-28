@@ -161,6 +161,8 @@ export async function updateDeployedContainer(
 ): Promise<Containerv1.Container> {
   const api = new Containerv1.API(client)
 
+  await waitForContainerReady(client, container)
+
   const containerEnv = getContainerEnvVariables()
   const secrets = parseKeyValue(ENV.SECRETS)
   const environmentVariables = parseKeyValue(process.env[ENV.ENVIRONMENT_VARIABLES] || '')
@@ -180,11 +182,11 @@ export async function updateDeployedContainer(
     sandbox: containerEnv.sandbox,
   })
 
-  const readyContainer = await waitForContainerReady(client, updatedContainer)
+  const readyUpdatedContainer = await waitForContainerReady(client, updatedContainer)
 
   const deployedContainer = await api.redeployContainer({
     region: container.region,
-    containerId: readyContainer.id,
+    containerId: readyUpdatedContainer.id,
   })
 
   return deployedContainer

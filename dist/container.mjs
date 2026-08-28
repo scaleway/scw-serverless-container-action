@@ -75,10 +75,11 @@ async function isContainerAlreadyCreated(client, namespace, containerName) {
 }
 async function updateDeployedContainer(client, container, pathRegistry) {
 	const api = new index_gen_exports.API(client);
+	await waitForContainerReady(client, container);
 	const containerEnv = getContainerEnvVariables();
 	const secrets = parseKeyValue(ENV.SECRETS);
 	const environmentVariables = parseKeyValue(process.env[ENV.ENVIRONMENT_VARIABLES] || "");
-	const readyContainer = await waitForContainerReady(client, await api.updateContainer({
+	const readyUpdatedContainer = await waitForContainerReady(client, await api.updateContainer({
 		region: container.region,
 		containerId: container.id,
 		image: pathRegistry,
@@ -94,7 +95,7 @@ async function updateDeployedContainer(client, container, pathRegistry) {
 	}));
 	return await api.redeployContainer({
 		region: container.region,
-		containerId: readyContainer.id
+		containerId: readyUpdatedContainer.id
 	});
 }
 async function createContainerAndDeploy(client, namespace, pathRegistry, containerName) {

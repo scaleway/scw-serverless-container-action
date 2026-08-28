@@ -78,7 +78,7 @@ async function updateDeployedContainer(client, container, pathRegistry) {
 	const containerEnv = getContainerEnvVariables();
 	const secrets = parseKeyValue(ENV.SECRETS);
 	const environmentVariables = parseKeyValue(process.env[ENV.ENVIRONMENT_VARIABLES] || "");
-	const updatedContainer = await api.updateContainer({
+	const readyContainer = await waitForContainerReady(client, await api.updateContainer({
 		region: container.region,
 		containerId: container.id,
 		image: pathRegistry,
@@ -91,10 +91,10 @@ async function updateDeployedContainer(client, container, pathRegistry) {
 		port: containerEnv.port,
 		scalingOption: { concurrentRequestsThreshold: containerEnv.maxConcurrency },
 		sandbox: containerEnv.sandbox
-	});
+	}));
 	return await api.redeployContainer({
 		region: container.region,
-		containerId: updatedContainer.id
+		containerId: readyContainer.id
 	});
 }
 async function createContainerAndDeploy(client, namespace, pathRegistry, containerName) {
@@ -102,7 +102,7 @@ async function createContainerAndDeploy(client, namespace, pathRegistry, contain
 	const containerEnv = getContainerEnvVariables();
 	const secrets = parseKeyValue(ENV.SECRETS);
 	const environmentVariables = parseKeyValue(process.env[ENV.ENVIRONMENT_VARIABLES] || "");
-	const createdContainer = await api.createContainer({
+	const readyContainer = await waitForContainerReady(client, await api.createContainer({
 		description: DEFAULTS.DESCRIPTION,
 		name: containerName,
 		namespaceId: namespace.id,
@@ -118,10 +118,10 @@ async function createContainerAndDeploy(client, namespace, pathRegistry, contain
 		port: containerEnv.port,
 		scalingOption: { concurrentRequestsThreshold: containerEnv.maxConcurrency },
 		sandbox: containerEnv.sandbox
-	});
+	}));
 	return await api.redeployContainer({
 		region: namespace.region,
-		containerId: createdContainer.id
+		containerId: readyContainer.id
 	});
 }
 async function deployContainer(client, namespace, containerName, pathRegistry) {

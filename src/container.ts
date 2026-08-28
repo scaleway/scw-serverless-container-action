@@ -180,9 +180,11 @@ export async function updateDeployedContainer(
     sandbox: containerEnv.sandbox,
   })
 
+  const readyContainer = await waitForContainerReady(client, updatedContainer)
+
   const deployedContainer = await api.redeployContainer({
     region: container.region,
-    containerId: updatedContainer.id,
+    containerId: readyContainer.id,
   })
 
   return deployedContainer
@@ -218,9 +220,11 @@ export async function createContainerAndDeploy(
     sandbox: containerEnv.sandbox,
   })
 
+  const readyContainer = await waitForContainerReady(client, createdContainer)
+
   const deployedContainer = await api.redeployContainer({
     region: namespace.region,
-    containerId: createdContainer.id,
+    containerId: readyContainer.id,
   })
 
   return deployedContainer

@@ -20,7 +20,7 @@ export const ENV = {
   SECRETS: 'INPUT_SCW_SECRETS',
   CLEANUP_MAX_AGE_DAYS: 'INPUT_CLEANUP_MAX_AGE_DAYS',
   CLEANUP_DATE_FIELD: 'INPUT_CLEANUP_DATE_FIELD',
-  CLEANUP_NAME_PATTERN: 'INPUT_CLEANUP_NAME_PATTERN',
+  CLEANUP_EXCLUDE_NAMES: 'INPUT_CLEANUP_EXCLUDE_NAMES',
   CLEANUP_DRY_RUN: 'INPUT_CLEANUP_DRY_RUN',
 } as const
 
@@ -60,5 +60,7 @@ export const DNS = {
   RETRY_INTERVAL: 5 * 1000,
 } as const
 
-export const CONTAINER_NAME_MAX_LENGTH = 34
+import { Containerv1 } from '@scaleway/sdk-container'
+
+export const CONTAINER_NAME_MAX_LENGTH = Containerv1.ValidationRules.CreateContainerRequest.name.maxLength
 export const HOSTNAME_MAX_LENGTH = 63

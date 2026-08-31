@@ -91,37 +91,32 @@ export type CleanupResult = {
 function getCleanupOptions() {
   const maxAgeDays = parseInt(process.env[ENV.CLEANUP_MAX_AGE_DAYS] || DEFAULTS.CLEANUP_MAX_AGE_DAYS.toString(), 10)
   const dateField = process.env[ENV.CLEANUP_DATE_FIELD] || DEFAULTS.CLEANUP_DATE_FIELD
-  const namePattern = process.env[ENV.CLEANUP_NAME_PATTERN] || ''
+  const excludeNamesRaw = process.env[ENV.CLEANUP_EXCLUDE_NAMES] || ''
+  const excludeNames = excludeNamesRaw
+    .split(',')
+    .map(name => name.trim())
+    .filter(name => name.length > 0)
   const dryRun = (process.env[ENV.CLEANUP_DRY_RUN] || DEFAULTS.CLEANUP_DRY_RUN.toString()) === 'true'
 
-  return { maxAgeDays, dateField, namePattern, dryRun }
+  return { maxAgeDays, dateField, excludeNames, dryRun }
 }
 
 function filterStaleContainers(
   containers: Containerv1.Container[],
-  options: { maxAgeDays: number; dateField: string; namePattern: string },
+  options: { maxAgeDays: number; dateField: string; excludeNames: string[] },
 ): Containerv1.Container[] {
-  const { maxAgeDays, dateField, namePattern } = options
-
-  let regex: RegExp | null = null
-
-  if (namePattern) {
-    try {
-      regex = new RegExp(namePattern)
-    } catch (error) {
-      throw new Error(`Invalid cleanup_name_pattern: ${error}`)
-    }
-  }
+  const { maxAgeDays, dateField, excludeNames } = options
 
   if (dateField !== CLEANUP_DATE_FIELDS.CREATED_AT && dateField !== CLEANUP_DATE_FIELDS.UPDATED_AT) {
     throw new Error(`Invalid cleanup_date_field: ${dateField}. Valid values: created_at, updated_at`)
   }
 
+  const excludeSet = new Set(excludeNames)
   const now = Date.now()
   const maxAgeMs = maxAgeDays * 24 * 60 * 60 * 1000
 
   return containers.filter(container => {
-    if (regex && !regex.test(container.name)) {
+    if (excludeSet.has(container.name)) {
       return false
     }
 
@@ -149,7 +144,7 @@ export async function cleanup(client: Client, region: string): Promise<CleanupRe
 
   core.info(
     `Cleanup config: max_age_days=${options.maxAgeDays}, date_field=${options.dateField}, ` +
-      `name_pattern=${options.namePattern || '(none)'}, dry_run=${options.dryRun}`,
+      `exclude_names=${options.excludeNames.length > 0 ? options.excludeNames.join(', ') : '(none)'}, dry_run=${options.dryRun}`,
   )
 
   const allContainers = await listContainersByNamespace(client, region)

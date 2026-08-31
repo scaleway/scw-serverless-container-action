@@ -111,13 +111,13 @@ jobs:
 
 > **Note**: The `cleanup` type lists all containers in the namespace and deletes the ones matching your filters. `scw_registry` is **not** required for this type.
 
-| input name           | value                                                                         |
-| -------------------- | ----------------------------------------------------------------------------- |
-| type                 | cleanup                                                                       |
-| cleanup_max_age_days | 7 (delete containers older than 7 days, 0 = no age filter)                    |
-| cleanup_date_field   | updated_at (default) or created_at                                            |
-| cleanup_name_pattern | Regex to filter containers by name (e.g. `^staging-`); empty = all containers |
-| cleanup_dry_run      | false (default). If true, only logs what would be deleted                     |
+| input name            | value                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------- |
+| type                  | cleanup                                                                                                 |
+| cleanup_max_age_days  | 7 (delete containers older than 7 days, 0 = no age filter)                                              |
+| cleanup_date_field    | updated_at (default) or created_at                                                                      |
+| cleanup_exclude_names | Comma-separated list of container names to never delete (e.g. "production,api"). Empty = no exclusions. |
+| cleanup_dry_run       | false (default). If true, only logs what would be deleted                                               |
 
 ```bash
 on:
@@ -141,7 +141,7 @@ jobs:
           scw_containers_namespace_id: ${{ secrets.CONTAINERS_NAMESPACE_ID }}
           cleanup_max_age_days: 7
           cleanup_date_field: updated_at
-          cleanup_name_pattern: '^main'
+          cleanup_exclude_names: production,api
           cleanup_dry_run: 'false'
 ```
 

@@ -1,4 +1,5 @@
 import { setOutput as setOutput$1 } from "./node_modules/.pnpm/@actions_core@3.0.1/node_modules/@actions/core/lib/core.mjs";
+import { CONTAINER_NAME_MAX_LENGTH } from "./constants.mjs";
 
 //#region src/utils.ts
 function envOr(name, defaultValue) {
@@ -35,7 +36,7 @@ function getContainerName(pathRegistry) {
 	let name = pathRegistry.split(":")[1] || "";
 	name = name.replace(/-/g, "");
 	name = name.replace(/_/g, "");
-	if (name.length > 34) name = name.substring(0, 34);
+	if (name.length > CONTAINER_NAME_MAX_LENGTH) name = name.substring(0, CONTAINER_NAME_MAX_LENGTH);
 	return name;
 }
 function hostnameToUrl(hostname) {

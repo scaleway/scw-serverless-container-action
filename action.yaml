@@ -2,7 +2,7 @@ name: 'serverless-container-action'
 description: 'This github action will help you to deploy automatically a container on Serverless Container'
 inputs:
   type:
-    description: 'This input can be used for deploy or teardown your environment. type by default is deploy ( deploy | teadown )'
+    description: 'This input can be used for deploy, teardown or cleanup your environment. type by default is deploy ( deploy | teardown | cleanup )'
     required: false
     default: deploy
   scw_access_key:
@@ -71,6 +71,27 @@ inputs:
     required: false
     default: 'v1'
 
+  # Cleanup of stale containers (type: cleanup)
+  cleanup_max_age_days:
+    description: 'Maximum age in days before a container is considered stale. Used with type=cleanup. 0 = no age filter.'
+    required: false
+    default: '0'
+  cleanup_date_field:
+    description: 'Date field used to compute container age. Used with type= cleanup.'
+    options:
+      - 'created_at'
+      - 'updated_at'
+    required: false
+    default: 'updated_at'
+  cleanup_name_pattern:
+    description: 'Regex pattern to filter containers by name. Only matching containers are eligible for cleanup. Defaults to all containers in the namespace.'
+    required: false
+    default: ''
+  cleanup_dry_run:
+    description: 'If true, only log which containers would be deleted without actually deleting them. Used with type=cleanup.'
+    required: false
+    default: 'false'
+
   # scw_debug:
   #   description: "debug log api call"
   #   required: false
@@ -85,6 +106,14 @@ outputs:
     description: 'Url of your deployed container'
   url:
     description: 'Url with dns set'
+  cleanup_total_count:
+    description: 'Total number of containers found in the namespace (type=cleanup)'
+  cleanup_deleted_count:
+    description: 'Number of containers deleted (or that would be deleted in dry-run) (type=cleanup)'
+  cleanup_dry_run:
+    description: 'Whether the cleanup was run in dry-run mode (type=cleanup)'
+  cleanup_deleted_containers:
+    description: 'Comma-separated list of names of deleted containers (type=cleanup)'
 
 runs:
   using: 'node24'

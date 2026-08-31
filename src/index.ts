@@ -1,8 +1,8 @@
 import * as core from '@actions/core'
 import { createClient } from '@scaleway/sdk-client'
-import { ENV, DEFAULTS } from './constants'
+import { ENV, DEFAULTS, TYPES } from './constants'
 import { getContainerDomain } from './container'
-import { deploy, teardown } from './orchestrator'
+import { deploy, teardown, cleanup } from './orchestrator'
 import { envOr, hostnameToUrl, printOutputs } from './utils'
 
 function createClientWrapper() {
@@ -27,14 +27,14 @@ async function run(): Promise<void> {
     const region = envOr(ENV.REGION, DEFAULTS.REGION)
     const type = envOr(ENV.TYPE, DEFAULTS.TYPE)
 
-    if (!pathRegistry) {
-      core.setFailed('SCW_REGISTRY is not set')
-      return
-    }
-
     const client = createClientWrapper()
 
-    if (type === 'deploy') {
+    if (type === TYPES.DEPLOY) {
+      if (!pathRegistry) {
+        core.setFailed('SCW_REGISTRY is not set')
+        return
+      }
+
       const { domain, container } = await deploy(client, region, pathRegistry)
 
       printOutputs({
@@ -43,7 +43,12 @@ async function run(): Promise<void> {
         containerId: container.id,
         namespaceId: container.namespaceId,
       })
-    } else if (type === 'teardown') {
+    } else if (type === TYPES.TEARDOWN) {
+      if (!pathRegistry) {
+        core.setFailed('SCW_REGISTRY is not set')
+        return
+      }
+
       const deletedContainer = await teardown(client, region, pathRegistry)
 
       printOutputs({
@@ -52,8 +57,16 @@ async function run(): Promise<void> {
         containerId: deletedContainer.id,
         namespaceId: deletedContainer.namespaceId,
       })
+    } else if (type === TYPES.CLEANUP) {
+      const result = await cleanup(client, region)
+
+      core.info(
+        `Cleanup complete: ${result.deletedCount} container(s) ${result.dryRun ? 'would be' : ''} deleted ` +
+          `out of ${result.totalCount} total`,
+      )
+
     } else {
-      core.setFailed(`Unknown type: ${type}. Valid types are: deploy, teardown`)
+      core.setFailed(`Unknown type: ${type}. Valid types are: deploy, teardown, cleanup`)
     }
   } catch (error) {
     core.setFailed(error instanceof Error ? error.message : 'An unknown error occurred')

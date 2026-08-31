@@ -18,6 +18,10 @@ export const ENV = {
   ROOT_ZONE: 'INPUT_ROOT_ZONE',
   ENVIRONMENT_VARIABLES: 'INPUT_SCW_ENVIRONMENT_VARIABLES',
   SECRETS: 'INPUT_SCW_SECRETS',
+  CLEANUP_MAX_AGE_DAYS: 'INPUT_CLEANUP_MAX_AGE_DAYS',
+  CLEANUP_DATE_FIELD: 'INPUT_CLEANUP_DATE_FIELD',
+  CLEANUP_NAME_PATTERN: 'INPUT_CLEANUP_NAME_PATTERN',
+  CLEANUP_DRY_RUN: 'INPUT_CLEANUP_DRY_RUN',
 } as const
 
 export const DEFAULTS = {
@@ -32,6 +36,20 @@ export const DEFAULTS = {
   TIMEOUT_SECONDS: 60,
   REGION: 'fr-par',
   TYPE: 'deploy',
+  CLEANUP_MAX_AGE_DAYS: 0,
+  CLEANUP_DATE_FIELD: 'updated_at',
+  CLEANUP_DRY_RUN: false,
+} as const
+
+export const TYPES = {
+  DEPLOY: 'deploy',
+  TEARDOWN: 'teardown',
+  CLEANUP: 'cleanup',
+} as const
+
+export const CLEANUP_DATE_FIELDS = {
+  CREATED_AT: 'created_at',
+  UPDATED_AT: 'updated_at',
 } as const
 
 export const DNS = {

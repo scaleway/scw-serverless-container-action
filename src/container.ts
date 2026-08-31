@@ -102,6 +102,22 @@ export async function getContainer(
   return response.containers[0]
 }
 
+export async function listContainersByNamespace(client: Client, region: string): Promise<Containerv1.Container[]> {
+  const namespaceId = process.env[ENV.CONTAINER_NAMESPACE_ID]
+
+  if (!namespaceId) {
+    throw new Error('Namespace ID not found')
+  }
+  const api = new Containerv1.API(client)
+  const containers = await api.listContainers({
+    region,
+    namespaceId,
+  }).all()
+
+
+  return containers
+}
+
 export async function deleteContainer(
   client: Client,
   region: string,

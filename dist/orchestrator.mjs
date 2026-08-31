@@ -1,7 +1,7 @@
 import { info, warning } from "./node_modules/.pnpm/@actions_core@3.0.1/node_modules/@actions/core/lib/core.mjs";
-import { ENV } from "./constants.mjs";
+import { CLEANUP_DATE_FIELDS, DEFAULTS, ENV } from "./constants.mjs";
 import { getContainerName } from "./utils.mjs";
-import { deleteContainer, deployContainer, getContainer, getContainersNamespace, setCustomDomainContainer, waitForNamespaceReady } from "./container.mjs";
+import { deleteContainer, deployContainer, getContainer, getContainersNamespace, listContainersByNamespace, setCustomDomainContainer, waitForNamespaceReady } from "./container.mjs";
 import { deleteDnsRecord, setDnsRecord } from "./dns.mjs";
 
 //#region src/orchestrator.ts
@@ -42,6 +42,69 @@ async function teardown(client, region, pathRegistry) {
 	info(`Container ${deletedContainer.name} deleted`);
 	return deletedContainer;
 }
+function getCleanupOptions() {
+	return {
+		maxAgeDays: parseInt(process.env[ENV.CLEANUP_MAX_AGE_DAYS] || DEFAULTS.CLEANUP_MAX_AGE_DAYS.toString(), 10),
+		dateField: process.env[ENV.CLEANUP_DATE_FIELD] || DEFAULTS.CLEANUP_DATE_FIELD,
+		namePattern: process.env[ENV.CLEANUP_NAME_PATTERN] || "",
+		dryRun: (process.env[ENV.CLEANUP_DRY_RUN] || DEFAULTS.CLEANUP_DRY_RUN.toString()) === "true"
+	};
+}
+function filterStaleContainers(containers, options) {
+	const { maxAgeDays, dateField, namePattern } = options;
+	let regex = null;
+	if (namePattern) try {
+		regex = new RegExp(namePattern);
+	} catch (error) {
+		throw new Error(`Invalid cleanup_name_pattern: ${error}`);
+	}
+	if (dateField !== CLEANUP_DATE_FIELDS.CREATED_AT && dateField !== CLEANUP_DATE_FIELDS.UPDATED_AT) throw new Error(`Invalid cleanup_date_field: ${dateField}. Valid values: created_at, updated_at`);
+	const now = Date.now();
+	const maxAgeMs = maxAgeDays * 24 * 60 * 60 * 1e3;
+	return containers.filter((container) => {
+		if (regex && !regex.test(container.name)) return false;
+		if (maxAgeDays > 0) {
+			const dateValue = dateField === CLEANUP_DATE_FIELDS.CREATED_AT ? container.createdAt : container.updatedAt;
+			if (!dateValue) {
+				warning(`Container ${container.name} has no ${dateField}, skipping`);
+				return false;
+			}
+			if (now - dateValue.getTime() < maxAgeMs) return false;
+		}
+		return true;
+	});
+}
+async function cleanup(client, region) {
+	const options = getCleanupOptions();
+	info(`Cleanup config: max_age_days=${options.maxAgeDays}, date_field=${options.dateField}, name_pattern=${options.namePattern || "(none)"}, dry_run=${options.dryRun}`);
+	const allContainers = await listContainersByNamespace(client, region);
+	info(`Found ${allContainers.length} container(s) in namespace`);
+	const staleContainers = filterStaleContainers(allContainers, options);
+	info(`${staleContainers.length} container(s) match the cleanup filters`);
+	const deletedContainers = [];
+	for (const container of staleContainers) {
+		const dateValue = options.dateField === CLEANUP_DATE_FIELDS.CREATED_AT ? container.createdAt : container.updatedAt;
+		info(`Container ${container.name} (id: ${container.id}) - ${options.dateField}: ${dateValue?.toISOString() ?? "unknown"}`);
+		if (options.dryRun) {
+			info(`[dry-run] Would delete container ${container.name}`);
+			deletedContainers.push(container);
+			continue;
+		}
+		try {
+			const deleted = await deleteContainer(client, region, container);
+			info(`Container ${deleted.name} deleted`);
+			deletedContainers.push(deleted);
+		} catch (error) {
+			warning(`Failed to delete container ${container.name}: ${error}`);
+		}
+	}
+	return {
+		totalCount: allContainers.length,
+		deletedCount: deletedContainers.length,
+		dryRun: options.dryRun,
+		deletedContainers
+	};
+}
 
 //#endregion
-export { deploy, setupDomain, teardown };
+export { cleanup, deploy, setupDomain, teardown };

@@ -3,7 +3,7 @@ import { createClient } from '@scaleway/sdk-client'
 import { ENV, DEFAULTS } from './constants'
 import { getContainerDomain } from './container'
 import { deploy, teardown } from './orchestrator'
-import { envOr, printOutputs } from './utils'
+import { envOr, hostnameToUrl, printOutputs } from './utils'
 
 function createClientWrapper() {
   const accessKey = process.env[ENV.ACCESS_KEY]
@@ -35,23 +35,23 @@ async function run(): Promise<void> {
     const client = createClientWrapper()
 
     if (type === 'deploy') {
-      const result = await deploy(client, region, pathRegistry)
+      const { domain, container } = await deploy(client, region, pathRegistry)
 
-      printOutputs(
-        getContainerDomain(result.container),
-        result.domain?.hostname || result.container.publicEndpoint,
-        result.container.id,
-        result.container.namespaceId,
-      )
+      printOutputs({
+        containerUrl: getContainerDomain(container),
+        url: hostnameToUrl(domain?.hostname) || container.publicEndpoint,
+        containerId: container.id,
+        namespaceId: container.namespaceId,
+      })
     } else if (type === 'teardown') {
       const deletedContainer = await teardown(client, region, pathRegistry)
 
-      printOutputs(
-        getContainerDomain(deletedContainer),
-        deletedContainer.publicEndpoint,
-        deletedContainer.id,
-        deletedContainer.namespaceId,
-      )
+      printOutputs({
+        containerUrl: getContainerDomain(deletedContainer),
+        url: deletedContainer.publicEndpoint,
+        containerId: deletedContainer.id,
+        namespaceId: deletedContainer.namespaceId,
+      })
     } else {
       core.setFailed(`Unknown type: ${type}. Valid types are: deploy, teardown`)
     }

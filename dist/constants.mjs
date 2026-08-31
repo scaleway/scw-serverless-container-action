@@ -1,3 +1,6 @@
+import { index_gen_exports } from "./node_modules/.pnpm/@scaleway_sdk-container@2.12.0_@scaleway_sdk-client@2.6.0/node_modules/@scaleway/sdk-container/dist/v1/index.gen.mjs";
+import "./node_modules/.pnpm/@scaleway_sdk-container@2.12.0_@scaleway_sdk-client@2.6.0/node_modules/@scaleway/sdk-container/dist/index.gen.mjs";
+
 //#region src/constants.ts
 const ENV = {
 	TYPE: "INPUT_TYPE",
@@ -21,7 +24,7 @@ const ENV = {
 	SECRETS: "INPUT_SCW_SECRETS",
 	CLEANUP_MAX_AGE_DAYS: "INPUT_CLEANUP_MAX_AGE_DAYS",
 	CLEANUP_DATE_FIELD: "INPUT_CLEANUP_DATE_FIELD",
-	CLEANUP_NAME_PATTERN: "INPUT_CLEANUP_NAME_PATTERN",
+	CLEANUP_EXCLUDE_NAMES: "INPUT_CLEANUP_EXCLUDE_NAMES",
 	CLEANUP_DRY_RUN: "INPUT_CLEANUP_DRY_RUN"
 };
 const DEFAULTS = {
@@ -56,6 +59,7 @@ const DNS = {
 	WAIT_TIMEOUT: 9e5,
 	RETRY_INTERVAL: 5e3
 };
+const CONTAINER_NAME_MAX_LENGTH = index_gen_exports.ValidationRules.CreateContainerRequest.name.maxLength;
 
 //#endregion
-export { CLEANUP_DATE_FIELDS, DEFAULTS, DNS, ENV, TYPES };
+export { CLEANUP_DATE_FIELDS, CONTAINER_NAME_MAX_LENGTH, DEFAULTS, DNS, ENV, TYPES };

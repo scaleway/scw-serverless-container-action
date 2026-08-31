@@ -46,23 +46,18 @@ function getCleanupOptions() {
 	return {
 		maxAgeDays: parseInt(process.env[ENV.CLEANUP_MAX_AGE_DAYS] || DEFAULTS.CLEANUP_MAX_AGE_DAYS.toString(), 10),
 		dateField: process.env[ENV.CLEANUP_DATE_FIELD] || DEFAULTS.CLEANUP_DATE_FIELD,
-		namePattern: process.env[ENV.CLEANUP_NAME_PATTERN] || "",
+		excludeNames: (process.env[ENV.CLEANUP_EXCLUDE_NAMES] || "").split(",").map((name) => name.trim()).filter((name) => name.length > 0),
 		dryRun: (process.env[ENV.CLEANUP_DRY_RUN] || DEFAULTS.CLEANUP_DRY_RUN.toString()) === "true"
 	};
 }
 function filterStaleContainers(containers, options) {
-	const { maxAgeDays, dateField, namePattern } = options;
-	let regex = null;
-	if (namePattern) try {
-		regex = new RegExp(namePattern);
-	} catch (error) {
-		throw new Error(`Invalid cleanup_name_pattern: ${error}`);
-	}
+	const { maxAgeDays, dateField, excludeNames } = options;
 	if (dateField !== CLEANUP_DATE_FIELDS.CREATED_AT && dateField !== CLEANUP_DATE_FIELDS.UPDATED_AT) throw new Error(`Invalid cleanup_date_field: ${dateField}. Valid values: created_at, updated_at`);
+	const excludeSet = new Set(excludeNames);
 	const now = Date.now();
 	const maxAgeMs = maxAgeDays * 24 * 60 * 60 * 1e3;
 	return containers.filter((container) => {
-		if (regex && !regex.test(container.name)) return false;
+		if (excludeSet.has(container.name)) return false;
 		if (maxAgeDays > 0) {
 			const dateValue = dateField === CLEANUP_DATE_FIELDS.CREATED_AT ? container.createdAt : container.updatedAt;
 			if (!dateValue) {
@@ -76,7 +71,7 @@ function filterStaleContainers(containers, options) {
 }
 async function cleanup(client, region) {
 	const options = getCleanupOptions();
-	info(`Cleanup config: max_age_days=${options.maxAgeDays}, date_field=${options.dateField}, name_pattern=${options.namePattern || "(none)"}, dry_run=${options.dryRun}`);
+	info(`Cleanup config: max_age_days=${options.maxAgeDays}, date_field=${options.dateField}, exclude_names=${options.excludeNames.length > 0 ? options.excludeNames.join(", ") : "(none)"}, dry_run=${options.dryRun}`);
 	const allContainers = await listContainersByNamespace(client, region);
 	info(`Found ${allContainers.length} container(s) in namespace`);
 	const staleContainers = filterStaleContainers(allContainers, options);

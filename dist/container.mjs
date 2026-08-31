@@ -1,7 +1,7 @@
 import { info } from "./node_modules/.pnpm/@actions_core@3.0.1/node_modules/@actions/core/lib/core.mjs";
-import { DEFAULTS, ENV } from "./constants.mjs";
 import { index_gen_exports } from "./node_modules/.pnpm/@scaleway_sdk-container@2.12.0_@scaleway_sdk-client@2.6.0/node_modules/@scaleway/sdk-container/dist/v1/index.gen.mjs";
 import "./node_modules/.pnpm/@scaleway_sdk-container@2.12.0_@scaleway_sdk-client@2.6.0/node_modules/@scaleway/sdk-container/dist/index.gen.mjs";
+import { DEFAULTS, ENV } from "./constants.mjs";
 import { envOr, envToInt, parseKeyValue } from "./utils.mjs";
 
 //#region src/container.ts

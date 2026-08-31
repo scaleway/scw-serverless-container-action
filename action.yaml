@@ -83,8 +83,8 @@ inputs:
       - 'updated_at'
     required: false
     default: 'updated_at'
-  cleanup_name_pattern:
-    description: 'Regex pattern to filter containers by name. Only matching containers are eligible for cleanup. Defaults to all containers in the namespace.'
+  cleanup_exclude_names:
+    description: 'Comma-separated list of container names that will never be deleted during cleanup (e.g. "production,api"). Empty = no exclusions.'
     required: false
     default: ''
   cleanup_dry_run:

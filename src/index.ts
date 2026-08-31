@@ -64,7 +64,6 @@ async function run(): Promise<void> {
         `Cleanup complete: ${result.deletedCount} container(s) ${result.dryRun ? 'would be' : ''} deleted ` +
           `out of ${result.totalCount} total`,
       )
-
     } else {
       core.setFailed(`Unknown type: ${type}. Valid types are: deploy, teardown, cleanup`)
     }

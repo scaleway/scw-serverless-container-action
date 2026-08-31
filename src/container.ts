@@ -109,11 +109,12 @@ export async function listContainersByNamespace(client: Client, region: string):
     throw new Error('Namespace ID not found')
   }
   const api = new Containerv1.API(client)
-  const containers = await api.listContainers({
-    region,
-    namespaceId,
-  }).all()
-
+  const containers = await api
+    .listContainers({
+      region,
+      namespaceId,
+    })
+    .all()
 
   return containers
 }

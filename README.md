@@ -107,7 +107,43 @@ jobs:
 
 ```
 
-### deploy with environment variables and secrets
+### cleanup stale containers
+
+> **Note**: The `cleanup` type lists all containers in the namespace and deletes the ones matching your filters. `scw_registry` is **not** required for this type.
+
+| input name           | value                                                                         |
+| -------------------- | ----------------------------------------------------------------------------- |
+| type                 | cleanup                                                                       |
+| cleanup_max_age_days | 7 (delete containers older than 7 days, 0 = no age filter)                    |
+| cleanup_date_field   | updated_at (default) or created_at                                            |
+| cleanup_name_pattern | Regex to filter containers by name (e.g. `^staging-`); empty = all containers |
+| cleanup_dry_run      | false (default). If true, only logs what would be deleted                     |
+
+```bash
+on:
+  schedule:
+    - cron: '0 2 * * *'  # every day at 02:00 UTC
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    name: Cleanup stale Scaleway Containers
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Scaleway Container Cleanup action
+        id: cleanup
+        uses:  scaleway/scaleway-containers-deploy@v1.0.0
+        with:
+          type: cleanup
+          scw_access_key:  ${{ secrets.ACCESS_KEY }}
+          scw_secret_key: ${{ secrets.SECRET_KEY }}
+          scw_containers_namespace_id: ${{ secrets.CONTAINERS_NAMESPACE_ID }}
+          cleanup_max_age_days: 7
+          cleanup_date_field: updated_at
+          cleanup_name_pattern: '^main'
+          cleanup_dry_run: 'false'
+```
 
 > **Note**: The environment variables/secrets values can't contains commas nor equal signs.
 

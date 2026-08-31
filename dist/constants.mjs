@@ -18,7 +18,11 @@ const ENV = {
 	SANDBOX: "INPUT_SCW_SANDBOX",
 	ROOT_ZONE: "INPUT_ROOT_ZONE",
 	ENVIRONMENT_VARIABLES: "INPUT_SCW_ENVIRONMENT_VARIABLES",
-	SECRETS: "INPUT_SCW_SECRETS"
+	SECRETS: "INPUT_SCW_SECRETS",
+	CLEANUP_MAX_AGE_DAYS: "INPUT_CLEANUP_MAX_AGE_DAYS",
+	CLEANUP_DATE_FIELD: "INPUT_CLEANUP_DATE_FIELD",
+	CLEANUP_NAME_PATTERN: "INPUT_CLEANUP_NAME_PATTERN",
+	CLEANUP_DRY_RUN: "INPUT_CLEANUP_DRY_RUN"
 };
 const DEFAULTS = {
 	DESCRIPTION: "this container was created automatically by a github-action",
@@ -31,7 +35,19 @@ const DEFAULTS = {
 	SANDBOX: "v1",
 	TIMEOUT_SECONDS: 60,
 	REGION: "fr-par",
-	TYPE: "deploy"
+	TYPE: "deploy",
+	CLEANUP_MAX_AGE_DAYS: 0,
+	CLEANUP_DATE_FIELD: "updated_at",
+	CLEANUP_DRY_RUN: false
+};
+const TYPES = {
+	DEPLOY: "deploy",
+	TEARDOWN: "teardown",
+	CLEANUP: "cleanup"
+};
+const CLEANUP_DATE_FIELDS = {
+	CREATED_AT: "created_at",
+	UPDATED_AT: "updated_at"
 };
 const DNS = {
 	CNAME: "CNAME",
@@ -42,4 +58,4 @@ const DNS = {
 };
 
 //#endregion
-export { DEFAULTS, DNS, ENV };
+export { CLEANUP_DATE_FIELDS, DEFAULTS, DNS, ENV, TYPES };

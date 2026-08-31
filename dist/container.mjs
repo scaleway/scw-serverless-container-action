@@ -50,6 +50,14 @@ async function getContainer(client, region, containerName) {
 	if (response.containers.length === 0) return null;
 	return response.containers[0];
 }
+async function listContainersByNamespace(client, region) {
+	const namespaceId = process.env[ENV.CONTAINER_NAMESPACE_ID];
+	if (!namespaceId) throw new Error("Namespace ID not found");
+	return await new index_gen_exports.API(client).listContainers({
+		region,
+		namespaceId
+	}).all();
+}
 async function deleteContainer(client, region, container) {
 	return await new index_gen_exports.API(client).deleteContainer({
 		region,
@@ -150,4 +158,4 @@ async function setCustomDomainContainer(client, container, hostname) {
 }
 
 //#endregion
-export { createContainerAndDeploy, deleteContainer, deployContainer, getContainer, getContainerDomain, getContainerEnvVariables, getContainersNamespace, getSandboxVersion, isContainerAlreadyCreated, setCustomDomainContainer, updateDeployedContainer, waitForContainerReady, waitForNamespaceReady };
+export { createContainerAndDeploy, deleteContainer, deployContainer, getContainer, getContainerDomain, getContainerEnvVariables, getContainersNamespace, getSandboxVersion, isContainerAlreadyCreated, listContainersByNamespace, setCustomDomainContainer, updateDeployedContainer, waitForContainerReady, waitForNamespaceReady };

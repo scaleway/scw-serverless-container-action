@@ -2,7 +2,7 @@ import { setFailed } from "./node_modules/.pnpm/@actions_core@3.0.1/node_modules
 import { createClient } from "./node_modules/.pnpm/@scaleway_sdk-client@2.6.0/node_modules/@scaleway/sdk-client/dist/scw/client.mjs";
 import "./node_modules/.pnpm/@scaleway_sdk-client@2.6.0/node_modules/@scaleway/sdk-client/dist/index.mjs";
 import { DEFAULTS, ENV } from "./constants.mjs";
-import { envOr, printOutputs } from "./utils.mjs";
+import { envOr, hostnameToUrl, printOutputs } from "./utils.mjs";
 import { getContainerDomain } from "./container.mjs";
 import { deploy, teardown } from "./orchestrator.mjs";
 
@@ -27,11 +27,21 @@ async function run() {
 		}
 		const client = createClientWrapper();
 		if (type === "deploy") {
-			const result = await deploy(client, region, pathRegistry);
-			printOutputs(getContainerDomain(result.container), result.domain?.hostname || result.container.publicEndpoint, result.container.id, result.container.namespaceId);
+			const { domain, container } = await deploy(client, region, pathRegistry);
+			printOutputs({
+				containerUrl: getContainerDomain(container),
+				url: hostnameToUrl(domain?.hostname) || container.publicEndpoint,
+				containerId: container.id,
+				namespaceId: container.namespaceId
+			});
 		} else if (type === "teardown") {
 			const deletedContainer = await teardown(client, region, pathRegistry);
-			printOutputs(getContainerDomain(deletedContainer), deletedContainer.publicEndpoint, deletedContainer.id, deletedContainer.namespaceId);
+			printOutputs({
+				containerUrl: getContainerDomain(deletedContainer),
+				url: deletedContainer.publicEndpoint,
+				containerId: deletedContainer.id,
+				namespaceId: deletedContainer.namespaceId
+			});
 		} else setFailed(`Unknown type: ${type}. Valid types are: deploy, teardown`);
 	} catch (error) {
 		setFailed(error instanceof Error ? error.message : "An unknown error occurred");

@@ -12,15 +12,25 @@ export function envToInt(name: string, defaultValue: number): number {
   return isNaN(parsed) ? defaultValue : parsed
 }
 
-export function setOutput(name: string, value: string): void {
+export function setOutput({ name, value }: { name: string; value: string }): void {
   core.setOutput(name, value)
 }
 
-export function printOutputs(containerUrl: string, url: string, containerId: string, namespaceId: string): void {
-  setOutput('url', url)
-  setOutput('container_url', containerUrl)
-  setOutput('scw_container_id', containerId)
-  setOutput('scw_namespace_id', namespaceId)
+export function printOutputs({
+  containerUrl,
+  url,
+  containerId,
+  namespaceId,
+}: {
+  containerUrl: string
+  url: string
+  containerId: string
+  namespaceId: string
+}): void {
+  setOutput({ name: 'url', value: url })
+  setOutput({ name: 'container_url', value: containerUrl })
+  setOutput({ name: 'scw_container_id', value: containerId })
+  setOutput({ name: 'scw_namespace_id', value: namespaceId })
 }
 
 export function getContainerName(pathRegistry: string): string {
@@ -35,6 +45,14 @@ export function getContainerName(pathRegistry: string): string {
   }
 
   return name
+}
+
+export function hostnameToUrl(hostname?: string | null): string | null {
+  if (!hostname) {
+    return null
+  }
+
+  return `https://${hostname}`
 }
 
 export function parseKeyValue(key: string): Record<string, string> {
